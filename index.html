@@ -9,7 +9,6 @@
   <meta name="apple-mobile-web-app-title" content="RainfallMon">
   <meta name="theme-color" content="#319795">
   <meta name="description" content="Sistem Monitoring Curah Hujan - TNCF Temanggung">
-
   <title>Rainfall Monitoring System</title>
 
   <!-- PWA Manifest -->
@@ -33,10 +32,18 @@
       --text: #2d3748;
     }
 
-    html, body {
-      width: 100%; height: 100%;
+    /*
+      KUNCI UTAMA: html & body harus full height + flex
+      agar iframe bisa mengisi seluruh layar dengan benar
+    */
+    html { height: 100%; }
+    body {
+      height: 100%;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
-      background: var(--bg);
+      background: var(--primary-dark);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
@@ -46,9 +53,9 @@
       background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      transition: opacity 0.5s ease, visibility 0.5s ease;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
     }
-    #splash.hidden { opacity: 0; visibility: hidden; }
+    #splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
     .splash-icon {
       width: 90px; height: 90px;
@@ -60,12 +67,10 @@
       animation: splashPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
     .splash-icon svg { width: 52px; height: 52px; }
-
     @keyframes splashPop {
       from { transform: scale(0.5); opacity: 0; }
       to   { transform: scale(1);   opacity: 1; }
     }
-
     .splash-title {
       color: white; font-size: 1.4rem; font-weight: 700;
       letter-spacing: 0.02em; margin-bottom: 6px;
@@ -76,27 +81,50 @@
       animation: fadeUp 0.5s 0.45s ease both;
     }
     .splash-loader {
-      margin-top: 40px;
-      width: 36px; height: 36px;
+      margin-top: 40px; width: 36px; height: 36px;
       border: 3px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
+      border-top-color: white; border-radius: 50%;
       animation: spin 0.8s linear infinite, fadeUp 0.5s 0.6s ease both;
     }
-    @keyframes spin    { to { transform: rotate(360deg); } }
-    @keyframes fadeUp  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin   { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(12px);} to { opacity:1; transform:translateY(0); } }
 
-    /* ===== IFRAME WRAPPER ===== */
+    /* ===== IFRAME — KUNCI TINGGI PENUH ===== */
     #app-frame {
-      width: 100%; height: 100%;
-      border: none; display: block;
+      flex: 1;        /* mengisi sisa tinggi setelah elemen lain */
+      width: 100%;
+      min-height: 0;  /* wajib di flex child agar tidak overflow */
+      border: none;
+      display: block;
+      background: #e2e8f0;
+    }
+
+    /* ===== FALLBACK jika iframe diblokir X-Frame-Options ===== */
+    #blocked-msg {
+      display: none;
+      position: fixed; inset: 0; z-index: 8000;
+      background: var(--bg);
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px; text-align: center; gap: 16px;
+    }
+    #blocked-msg.show { display: flex; }
+    #blocked-msg .icon { font-size: 3rem; }
+    #blocked-msg h2 { font-size: 1.1rem; color: var(--text); }
+    #blocked-msg p  { font-size: 0.85rem; color: #718096; line-height: 1.7; max-width: 300px; }
+    #blocked-msg a {
+      display: inline-block;
+      background: var(--primary); color: white;
+      text-decoration: none; border-radius: 10px;
+      padding: 12px 28px; font-weight: 700; font-size: 0.9rem;
+      box-shadow: 0 4px 14px rgba(49,151,149,0.35);
+      margin-top: 8px;
     }
 
     /* ===== INSTALL BANNER ===== */
     #install-banner {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
-      background: var(--white);
-      border-top: 1px solid #e2e8f0;
+      background: var(--white); border-top: 1px solid #e2e8f0;
       padding: 14px 20px;
       display: flex; align-items: center; gap: 14px;
       box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
@@ -104,46 +132,37 @@
       transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     #install-banner.show { transform: translateY(0); }
-
     .install-icon {
       width: 44px; height: 44px; flex-shrink: 0;
       background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
     }
     .install-icon svg { width: 24px; height: 24px; }
-
     .install-text { flex: 1; }
     .install-text strong { display: block; font-size: 0.9rem; color: var(--text); }
-    .install-text span { font-size: 0.75rem; color: #718096; }
-
+    .install-text span   { font-size: 0.75rem; color: #718096; }
     .install-btn {
-      background: var(--primary); color: white;
-      border: none; border-radius: 8px;
+      background: var(--primary); color: white; border: none; border-radius: 8px;
       padding: 8px 16px; font-size: 0.82rem; font-weight: 600;
-      cursor: pointer; white-space: nowrap;
-      transition: background 0.2s;
+      cursor: pointer; white-space: nowrap; transition: background 0.2s;
     }
     .install-btn:hover { background: var(--primary-dark); }
-
     .install-dismiss {
       background: none; border: none; cursor: pointer;
-      color: #a0aec0; font-size: 1.1rem; line-height: 1;
-      padding: 4px; flex-shrink: 0;
+      color: #a0aec0; font-size: 1.1rem; padding: 4px; flex-shrink: 0;
     }
 
     /* ===== iOS INSTALL HINT ===== */
     #ios-hint {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
-      background: var(--white);
-      border-top: 1px solid #e2e8f0;
-      padding: 16px 20px 24px;
+      background: var(--white); border-top: 1px solid #e2e8f0;
+      padding: 16px 20px 28px;
       box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
       transform: translateY(100%);
       transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     #ios-hint.show { transform: translateY(0); }
-    #ios-hint p { font-size: 0.85rem; color: var(--text); line-height: 1.6; }
+    #ios-hint p { font-size: 0.85rem; color: var(--text); line-height: 1.7; }
     #ios-hint strong { color: var(--primary); }
     #ios-hint-close {
       position: absolute; top: 12px; right: 16px;
@@ -169,9 +188,7 @@
 <div id="splash">
   <div class="splash-icon">
     <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Main raindrop -->
       <path d="M26 8C26 8 14 22 14 30a12 12 0 0 0 24 0C38 22 26 8 26 8Z" fill="white" opacity="0.95"/>
-      <!-- Small drops -->
       <ellipse cx="12" cy="36" rx="4" ry="5.5" fill="white" opacity="0.5" transform="rotate(-10 12 36)"/>
       <ellipse cx="40" cy="36" rx="4" ry="5.5" fill="white" opacity="0.5" transform="rotate(10 40 36)"/>
     </svg>
@@ -181,18 +198,27 @@
   <div class="splash-loader"></div>
 </div>
 
+<!-- Fallback jika GAS diblokir iframe -->
+<div id="blocked-msg">
+  <div class="icon">🌧️</div>
+  <h2>Tidak dapat memuat aplikasi</h2>
+  <p>Browser memblokir tampilan embed. Klik tombol di bawah untuk membuka langsung.</p>
+  <a id="open-link" href="#" target="_blank">Buka Rainfall Monitor →</a>
+</div>
+
 <!-- Offline Notice -->
 <div id="offline-notice">⚠️ Kamu sedang offline — data tidak bisa diperbarui</div>
 
-<!-- Main App: Google Apps Script dalam iframe -->
+<!-- Iframe GAS -->
 <iframe
   id="app-frame"
   src="https://script.google.com/macros/s/AKfycbzJL-N5UcevIHBK5Yp_ahJ2asnCQaQQ18BiT97KjcCFEhefcuQBpm8MWkNIsejoyNsvog/exec"
-  allow="fullscreen"
+  allow="fullscreen; clipboard-read; clipboard-write"
+  allowfullscreen
   title="Rainfall Monitoring System"
 ></iframe>
 
-<!-- Install Banner (Android / Desktop) -->
+<!-- Install Banner -->
 <div id="install-banner">
   <div class="install-icon">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -211,49 +237,65 @@
 <div id="ios-hint">
   <button id="ios-hint-close">✕</button>
   <p>
-    Untuk install di iPhone / iPad:<br>
-    Ketuk <strong>ikon Share</strong> (kotak ↑) di browser,<br>
+    Untuk install di iPhone/iPad:<br>
+    Ketuk <strong>ikon Share ↑</strong> di Safari,<br>
     lalu pilih <strong>"Add to Home Screen"</strong>
   </p>
 </div>
 
 <script>
-  // ============================================================
-  // CONFIG — GANTI URL DI SINI
-  // ============================================================
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbzJL-N5UcevIHBK5Yp_ahJ2asnCQaQQ18BiT97KjcCFEhefcuQBpm8MWkNIsejoyNsvog/exec';
-  // Contoh: 'https://script.google.com/macros/s/AKfycbxxx.../exec'
-  // ============================================================
 
-  const frame   = document.getElementById('app-frame');
-  const splash  = document.getElementById('splash');
+  const frame         = document.getElementById('app-frame');
+  const splash        = document.getElementById('splash');
+  const blockedMsg    = document.getElementById('blocked-msg');
+  const openLink      = document.getElementById('open-link');
   const offlineNotice = document.getElementById('offline-notice');
 
-  // Set iframe src dari config
-  if (GAS_URL !== 'https://script.google.com/macros/s/AKfycbzJL-N5UcevIHBK5Yp_ahJ2asnCQaQQ18BiT97KjcCFEhefcuQBpm8MWkNIsejoyNsvog/exec') {
-    frame.src = GAS_URL;
-  }
+  openLink.href = GAS_URL;
 
-  // ---- Splash: hilangkan setelah iframe siap atau max 4 detik ----
+  // ---- Splash hilang setelah iframe load ----
   let splashGone = false;
   function hideSplash() {
     if (splashGone) return;
     splashGone = true;
     splash.classList.add('hidden');
   }
-  frame.addEventListener('load', () => setTimeout(hideSplash, 300));
-  setTimeout(hideSplash, 4000); // fallback
 
-  // ---- Register Service Worker ----
+  // Timer fallback: jika 9 detik iframe tidak load → tampilkan pesan fallback
+  const blockedTimer = setTimeout(() => {
+    hideSplash();
+    blockedMsg.classList.add('show');
+  }, 9000);
+
+  frame.addEventListener('load', () => {
+    clearTimeout(blockedTimer);
+    setTimeout(hideSplash, 500);
+
+    // Cek apakah iframe benar-benar terisi (cross-origin error = normal/berhasil)
+    try {
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      // Jika bisa akses dan body kosong → kemungkinan diblokir
+      if (doc && doc.body && doc.body.innerHTML.trim() === '') {
+        hideSplash();
+        blockedMsg.classList.add('show');
+      }
+    } catch (e) {
+      // Cross-origin SecurityError = GAS berhasil load di iframe (normal!)
+      hideSplash();
+    }
+  });
+
+  // ---- Service Worker ----
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('SW registered:', reg.scope))
-        .catch(err => console.error('SW error:', err));
+        .then(r => console.log('SW ok:', r.scope))
+        .catch(e => console.warn('SW err:', e));
     });
   }
 
-  // ---- Install Prompt (Android/Desktop/Chrome) ----
+  // ---- Install Prompt ----
   let deferredPrompt = null;
   const installBanner  = document.getElementById('install-banner');
   const installBtn     = document.getElementById('install-btn');
@@ -262,49 +304,29 @@
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    // Tampilkan banner setelah 3 detik supaya tidak terlalu mengganggu
-    setTimeout(() => installBanner.classList.add('show'), 3000);
+    setTimeout(() => installBanner.classList.add('show'), 3500);
   });
-
   installBtn.addEventListener('click', async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    await deferredPrompt.userChoice;
     deferredPrompt = null;
     installBanner.classList.remove('show');
-    console.log('Install outcome:', outcome);
   });
+  installDismiss.addEventListener('click', () => installBanner.classList.remove('show'));
+  window.addEventListener('appinstalled', () => installBanner.classList.remove('show'));
 
-  installDismiss.addEventListener('click', () => {
-    installBanner.classList.remove('show');
-  });
-
-  // Sembunyikan banner setelah berhasil diinstall
-  window.addEventListener('appinstalled', () => {
-    installBanner.classList.remove('show');
-    console.log('PWA installed!');
-  });
-
-  // ---- iOS Install Hint ----
+  // ---- iOS Hint ----
   const iosHint      = document.getElementById('ios-hint');
   const iosHintClose = document.getElementById('ios-hint-close');
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
-                          || window.navigator.standalone;
-
-  if (isIOS && !isInStandaloneMode) {
-    // Tampilkan hint iOS setelah 4 detik
-    setTimeout(() => iosHint.classList.add('show'), 4000);
-  }
+  const isIOS        = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isIOS && !isStandalone) setTimeout(() => iosHint.classList.add('show'), 5000);
   iosHintClose.addEventListener('click', () => iosHint.classList.remove('show'));
 
-  // ---- Offline Detection ----
+  // ---- Offline ----
   function updateOnlineStatus() {
-    if (!navigator.onLine) {
-      offlineNotice.classList.add('show');
-    } else {
-      offlineNotice.classList.remove('show');
-    }
+    offlineNotice.classList.toggle('show', !navigator.onLine);
   }
   window.addEventListener('online',  updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
