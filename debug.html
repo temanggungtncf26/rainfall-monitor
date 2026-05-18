@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Debug GAS Connection</title>
+<style>
+  body { font-family: monospace; padding: 20px; background: #1a1a2e; color: #eee; }
+  h2 { color: #4fd1c5; }
+  button { background: #319795; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  button:hover { background: #2c7a7b; }
+  #log { background: #16213e; padding: 15px; border-radius: 8px; margin-top: 15px; min-height: 200px; white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+  .ok { color: #68d391; }
+  .err { color: #fc8181; }
+  .warn { color: #f6e05e; }
+  .info { color: #76e4f7; }
+</style>
+</head>
+<body>
+<h2>🔧 GAS Connection Debugger</h2>
+<p style="color:#a0aec0">Buka halaman ini di browser yang sama dengan app kamu, lalu klik tombol di bawah.</p>
+
+<button onclick="testGET()">1. Test GET</button>
+<button onclick="testPOST()">2. Test POST getSiteSettings</button>
+<button onclick="testLogin()">3. Test Login ADMIN</button>
+<button onclick="testGetData()">4. Test getRainfallData</button>
+<button onclick="clearLog()">🗑 Clear</button>
+
+<div id="log">Klik tombol di atas untuk mulai test...\n</div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxg976pJIOMNg4rHa-snZZbjBuW9xEHlAR2hlKUa6vqBDgZKIY6o0-0iFyYsKj1LhSb/exec';
+
+function log(msg, type='info') {
+  const el = document.getElementById('log');
+  const time = new Date().toLocaleTimeString('id-ID');
+  el.innerHTML += `<span class="${type}">[${time}] ${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+
+async function testGET() {
+  log('--- TEST 1: GET request ---');
+  try {
+    log(`Fetching: ${GAS_URL}`);
+    const res = await fetch(GAS_URL, { method: 'GET', redirect: 'follow' });
+    log(`Status: ${res.status} ${res.statusText}`, res.ok ? 'ok' : 'err');
+    log(`Content-Type: ${res.headers.get('content-type')}`, 'info');
+    const text = await res.text();
+    log(`Response (200 chars): ${text.substring(0,200)}`, 'warn');
+  } catch(e) {
+    log(`ERROR: ${e.message}`, 'err');
+    log('→ Kemungkinan CORS block atau network error', 'err');
+  }
+}
+
+async function testPOST() {
+  log('--- TEST 2: POST getSiteSettings ---');
+  const body = { action: 'getSiteSettings', data: {} };
+  log(`Body: ${JSON.stringify(body)}`);
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body)
+    });
+    log(`Status: ${res.status} ${res.statusText}`, res.ok ? 'ok' : 'err');
+    const text = await res.text();
+    log(`Response: ${text.substring(0,500)}`, 'warn');
+    try {
+      const json = JSON.parse(text);
+      log(`✅ JSON valid! success=${json.success}`, 'ok');
+      if(json.data) log(`Data keys: ${Object.keys(json.data).join(', ')}`, 'ok');
+    } catch(e) {
+      log(`❌ Response bukan JSON! Raw: ${text.substring(0,200)}`, 'err');
+    }
+  } catch(e) {
+    log(`ERROR: ${e.message}`, 'err');
+    if(e.message.includes('CORS') || e.message.includes('fetch')) {
+      log('→ CORS Error! GAS deployment perlu akses "Anyone"', 'err');
+    }
+  }
+}
+
+async function testLogin() {
+  log('--- TEST 3: Login ADMIN ---');
+  const body = { action: 'loginUser', data: { username: 'ADMIN', password: 'ADMIN26' } };
+  log(`Body: ${JSON.stringify(body)}`);
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body)
+    });
+    const text = await res.text();
+    log(`Status: ${res.status}`, res.ok ? 'ok' : 'err');
+    try {
+      const json = JSON.parse(text);
+      log(`Login result: success=${json.success}`, json.success ? 'ok' : 'err');
+      if(json.user) log(`User: ${JSON.stringify(json.user)}`, 'ok');
+      if(json.message) log(`Message: ${json.message}`, 'warn');
+    } catch(e) {
+      log(`Response bukan JSON: ${text.substring(0,200)}`, 'err');
+    }
+  } catch(e) {
+    log(`ERROR: ${e.message}`, 'err');
+  }
+}
+
+async function testGetData() {
+  log('--- TEST 4: getRainfallData ---');
+  const body = { action: 'getRainfallData', data: { role: 'ADMIN', site: 'ALL' } };
+  log(`Body: ${JSON.stringify(body)}`);
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body)
+    });
+    const text = await res.text();
+    log(`Status: ${res.status}`, res.ok ? 'ok' : 'err');
+    try {
+      const json = JSON.parse(text);
+      log(`success=${json.success}`, json.success ? 'ok' : 'err');
+      if(json.data) log(`Jumlah data: ${json.data.length} baris`, 'ok');
+      if(json.message) log(`Message: ${json.message}`, 'warn');
+    } catch(e) {
+      log(`Response bukan JSON: ${text.substring(0,200)}`, 'err');
+    }
+  } catch(e) {
+    log(`ERROR: ${e.message}`, 'err');
+  }
+}
+</script>
+</body>
+</html>
