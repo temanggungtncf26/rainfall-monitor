@@ -224,6 +224,7 @@ window.onload = function() {
     if (!navigator.onLine) handleOffline();
 
     // Load initial data dari GAS
+    startLoading('Menghubungkan ke server...');
     gasCall('getSiteSettings').then(data => {
         if (data.success && Object.keys(data.data).length > 0) siteMapping = data.data;
         return gasCall('getNormalData');
@@ -232,9 +233,18 @@ window.onload = function() {
         return gasCall('getNormalDataDasarian');
     }).then(resDas => {
         if (resDas && resDas.success) normalDataDasarianMapping = resDas.data;
+        endLoading();
         checkLoginState();
     }).catch(err => {
-        console.warn('[PWA] Offline saat load awal, pakai cache');
+        endLoading();
+        console.warn('[PWA] Gagal load dari GAS:', err.message);
+        // Coba load dari cache localStorage
+        const cachedSite = localStorage.getItem('ch_cached_siteMapping');
+        const cachedNormal = localStorage.getItem('ch_cached_normalData');
+        const cachedNormalDas = localStorage.getItem('ch_cached_normalDataDasarian');
+        if (cachedSite) siteMapping = JSON.parse(cachedSite);
+        if (cachedNormal) normalDataMapping = JSON.parse(cachedNormal);
+        if (cachedNormalDas) normalDataDasarianMapping = JSON.parse(cachedNormalDas);
         checkLoginState();
     });
 };
@@ -249,29 +259,32 @@ function endLoading() {
 }
 
 /* ================= GAS FETCH HELPER ================= */
-async function gasCall(action, params = {}) {
-    const url = new URL(GAS_URL);
-    url.searchParams.set('action', action);
-    // Tambah params ke URL untuk GET request
-    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, typeof v === 'object' ? JSON.stringify(v) : v));
-
-    const response = await fetch(url.toString(), {
-        method: 'GET',
-        redirect: 'follow'
-    });
-    if (!response.ok) throw new Error('Network response not ok');
-    return response.json();
+// GAS doPost() mengharapkan: { action: "...", data: { ... } }
+async function gasCall(action, data = {}) {
+    return _gasFetch({ action, data });
 }
 
 async function gasPost(payload) {
+    // Konversi flat payload { action, key1, key2 } → { action, data: { key1, key2 } }
+    const { action, _queuedAt, ...rest } = payload;
+    return _gasFetch({ action, data: rest });
+}
+
+async function _gasFetch(body) {
     const response = await fetch(GAS_URL, {
         method: 'POST',
         redirect: 'follow',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
     });
-    if (!response.ok) throw new Error('Network response not ok');
-    return response.json();
+    if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+    const text = await response.text();
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error('[GAS] Response bukan JSON:', text.substring(0, 300));
+        throw new Error('GAS response bukan JSON.');
+    }
 }
 
 /* ================= OFFLINE HANDLERS ================= */
@@ -398,7 +411,7 @@ function handleLogin(e) {
             }
         }, 500);
     } else {
-        gasPost({ action: 'loginUser', username: u, password: p })
+        gasPost({ action: 'loginUser', data: { username: u, password: p } })
             .then(res => {
                 endLoading();
                 if (res.success) {
@@ -998,9 +1011,13 @@ function fetchData(cb) {
     if (isSimulated) cb(currentUser.role==='STAFF' ? mockDB.filter(d=>d.Site===currentUser.site) : mockDB);
     else {
         gasCall('getRainfallData', { role: currentUser.role, site: currentUser.site })
-            .then(res => { if(res.success) cb(res.data); })
+            .then(res => {
+                if (res.success) {
+                    localStorage.setItem('ch_cached_data', JSON.stringify(res.data));
+                    cb(res.data);
+                }
+            })
             .catch(() => {
-                // Offline: pakai cached data dari localStorage jika ada
                 const cached = localStorage.getItem('ch_cached_data');
                 if (cached) {
                     Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Menampilkan data cache (offline)', showConfirmButton: false, timer: 2500 });
