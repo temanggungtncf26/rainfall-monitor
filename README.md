@@ -1,134 +1,145 @@
-# 🌧️ Rainfall Monitoring PWA Wrapper
-> Generated for TNCF Temanggung | @rochmadjeka
+# 🌧️ Monitoring Curah Hujan TNCF — PWA
 
-Folder ini berisi semua file yang dibutuhkan untuk membungkus
-Google Apps Script kamu menjadi PWA yang bisa diinstall seperti aplikasi native.
+Aplikasi Monitoring Curah Hujan berbasis **Progressive Web App (PWA)** yang terhubung ke Google Apps Script sebagai backend.
 
 ---
 
 ## 📁 Struktur File
 
 ```
-pwa-wrapper/
-├── index.html          ← Halaman utama PWA (iframe wrapper)
-├── manifest.json       ← Konfigurasi PWA (nama, warna, icon)
-├── sw.js               ← Service Worker (cache & offline)
-├── generate-icons.js   ← Script untuk generate icon (opsional)
-└── icons/              ← Folder icon (buat manual atau pakai script)
-    ├── icon-72.png
-    ├── icon-96.png
-    ├── icon-128.png
-    ├── icon-144.png
-    ├── icon-152.png
-    ├── icon-192.png
-    ├── icon-384.png
-    └── icon-512.png
+pwa-curah-hujan/
+├── index.html          ← Aplikasi utama (UI + semua logic)
+├── manifest.json       ← Konfigurasi PWA (nama, ikon, warna)
+├── sw.js               ← Service Worker (Cache First + Background Sync)
+├── icons/
+│   ├── icon-192.svg    ← Ikon PWA 192x192 (bisa diganti)
+│   └── icon-512.svg    ← Ikon PWA 512x512 (bisa diganti)
+└── README.md           ← Dokumentasi ini
 ```
 
 ---
 
-## 🚀 Langkah Deploy (GitHub Pages)
+## 🚀 Cara Deploy ke GitHub Pages
 
-### 1. Ganti URL Google Apps Script
+### Langkah 1 — Upload ke GitHub
 
-Buka `index.html`, cari baris ini dan ganti dengan URL deploy GAS kamu:
+1. Buat repository baru di GitHub (contoh: `curah-hujan-app`)
+2. Upload semua file di folder ini ke repository tersebut
+3. Pastikan struktur folder `icons/` ikut terupload
+
+### Langkah 2 — Aktifkan GitHub Pages
+
+1. Buka Settings → Pages
+2. Source: pilih **Deploy from a branch**
+3. Branch: pilih **main** → folder **/ (root)**
+4. Klik **Save**
+5. Tunggu 1–2 menit, aplikasi akan live di: `https://[username].github.io/[repo-name]/`
+
+### Langkah 3 — Test PWA
+
+Buka URL aplikasi di **Chrome** (desktop atau Android), lalu:
+
+1. Buka DevTools (`F12`) → tab **Application**
+2. Klik **Service Workers** — pastikan SW terdaftar dan status `activated`
+3. Klik **Manifest** — pastikan semua field terisi dan ikon muncul
+4. Untuk test offline: DevTools → Network → centang **Offline** → reload halaman
+
+---
+
+## 📲 Cara Install di HP (Android)
+
+1. Buka URL aplikasi di **Chrome for Android**
+2. Tunggu beberapa detik, akan muncul banner **"Install app Curah Hujan di HP kamu?"**
+3. Klik **Install** — aplikasi akan tersimpan di home screen
+4. Atau: menu Chrome (titik tiga) → **"Add to Home Screen"**
+
+## 🍎 Cara Install di iPhone/iPad (iOS)
+
+1. Buka URL di **Safari** (bukan Chrome)
+2. Tap ikon **Share** (kotak dengan panah ke atas)
+3. Scroll ke bawah → tap **"Add to Home Screen"**
+4. Klik **Add**
+
+> ⚠️ iOS tidak mendukung Background Sync API. Sinkronisasi data otomatis hanya bekerja di Chrome/Android. Di iOS, sync akan berjalan saat kamu membuka app kembali dalam kondisi online.
+
+---
+
+## 🔄 Fitur Offline & Sinkronisasi
+
+| Fitur | Online | Offline |
+|-------|--------|---------|
+| Login | ✅ | ❌ (perlu koneksi) |
+| Dashboard & Grafik | ✅ | ✅ (dari cache) |
+| Input Data | ✅ | ✅ (tersimpan lokal) |
+| Edit Data | ✅ | ✅ (tersimpan lokal) |
+| Rekapitulasi | ✅ | ✅ (dari cache) |
+| Export Excel/PNG | ✅ | ✅ |
+| Kelola User/OBS | ✅ | ❌ |
+
+Data yang diinput saat offline akan otomatis dikirim ke server saat koneksi kembali (badge kuning akan muncul).
+
+---
+
+## 🖼️ Cara Ganti Ikon
+
+Ikon saat ini adalah SVG placeholder. Untuk menggantinya dengan ikon asli:
+
+### Opsi A — Ganti dengan PNG
+
+1. Siapkan file PNG berukuran **192×192** dan **512×512** piksel
+2. Letakkan di folder `icons/` dengan nama:
+   - `icon-192.png`
+   - `icon-512.png`
+3. Edit `manifest.json`, ubah:
+   ```json
+   "icons": [
+     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+   ]
+   ```
+4. Edit `index.html`, update baris apple-touch-icon:
+   ```html
+   <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+   ```
+
+### Opsi B — Tetap Gunakan SVG
+
+Edit file `icons/icon-192.svg` dan `icons/icon-512.svg` sesuai kebutuhan.
+
+---
+
+## ⚙️ Konfigurasi GAS (CORS)
+
+Pastikan deployment Google Apps Script dikonfigurasi dengan akses:
+- **Execute as**: Me
+- **Who has access**: **Anyone** (atau Anyone with Google Account)
+
+Jika akses dibatasi, fetch dari PWA akan gagal karena CORS.
+
+---
+
+## 🔧 Update Cache (Setelah Deploy Ulang)
+
+Setiap kali kamu mengupdate `index.html`, naikkan versi cache di `sw.js`:
 
 ```javascript
-const GAS_URL = 'GANTI_DENGAN_URL_GAS_KAMU';
+const CACHE_NAME = 'curah-hujan-v1.0.1'; // ← Naikkan versi ini
 ```
 
-Contoh:
-```javascript
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxxxxxxxxxxx/exec';
-```
-
-### 2. Buat Icon PWA
-
-**Opsi A — Pakai tools online (paling mudah):**
-- Buka https://www.pwabuilder.com/imageGenerator
-- Upload satu gambar persegi (minimal 512×512px), bisa logo perusahaan
-- Download hasilnya, ekstrak ke folder `icons/`
-
-**Opsi B — Generate via Node.js:**
-```bash
-npm install canvas
-node generate-icons.js
-```
-
-**Opsi C — Buat manual:**
-Buat 8 file PNG dengan ukuran:
-72, 96, 128, 144, 152, 192, 384, 512 pixel persegi
-Simpan di folder `icons/` dengan nama `icon-[ukuran].png`
-
-### 3. Upload ke GitHub
-
-```bash
-# Buat repo baru di GitHub (misal: rainfall-pwa)
-git init
-git add .
-git commit -m "Initial PWA wrapper"
-git branch -M main
-git remote add origin https://github.com/USERNAME/rainfall-pwa.git
-git push -u origin main
-```
-
-### 4. Aktifkan GitHub Pages
-
-1. Buka repo di GitHub
-2. Settings → Pages
-3. Source: **Deploy from a branch** → Branch: `main` / `root`
-4. Klik Save
-5. Tunggu ~1-2 menit, URL kamu akan muncul:
-   `https://USERNAME.github.io/rainfall-pwa/`
+Ini memaksa browser mengunduh file terbaru dan menghapus cache lama.
 
 ---
 
-## 📱 Cara Install PWA
+## ❓ Troubleshooting
 
-### Android (Chrome)
-- Buka URL GitHub Pages di Chrome
-- Akan muncul banner **"Install Rainfall Monitor"** otomatis
-- Klik **Install** → aplikasi muncul di home screen
+**PWA tidak bisa diinstall?**
+→ Pastikan akses via HTTPS (GitHub Pages sudah HTTPS otomatis). Localhost harus diakses lewat `127.0.0.1` atau HTTPS.
 
-### iPhone / iPad (Safari)
-- Buka URL di Safari
-- Akan muncul petunjuk di bawah layar
-- Ketuk ikon Share (kotak ↑) → **"Add to Home Screen"**
+**Data tidak muncul / kosong?**
+→ Periksa Network tab di DevTools apakah request ke GAS berhasil. Pastikan GAS deployment aktif dan akses "Anyone".
 
-### Desktop (Chrome / Edge)
-- Buka URL
-- Di address bar akan muncul ikon install (⊕)
-- Atau klik menu → "Install Rainfall Monitoring System"
+**Service Worker tidak update?**
+→ DevTools → Application → Service Workers → klik **Update** atau naikkan versi `CACHE_NAME` di `sw.js`.
 
----
-
-## ⚠️ Catatan Penting
-
-1. **Koneksi internet tetap diperlukan** untuk mengakses data — GAS tetap butuh online
-2. PWA wrapper ini hanya mengcache **shell** aplikasi (loading screen, offline notice)
-3. Pastikan URL GAS di-deploy sebagai **"Anyone"** bukan "Anyone with Google account"
-   karena iframe tidak bisa handle login Google
-
----
-
-## 🔧 Kustomisasi
-
-### Ganti nama app
-Edit `manifest.json`:
-```json
-"name": "Rainfall Monitoring System",
-"short_name": "RainfallMon"
-```
-
-### Ganti warna tema
-Edit `manifest.json` dan `index.html`:
-```json
-"theme_color": "#319795",
-"background_color": "#e2e8f0"
-```
-
-### Update app (setelah ada perubahan)
-Ganti versi cache di `sw.js`:
-```javascript
-const CACHE_NAME = 'rainfall-pwa-v2'; // naikan versi
-```
+**Background sync tidak jalan di iOS?**
+→ Normal. iOS Safari tidak mendukung Background Sync API. Data akan tersync saat app dibuka kembali dalam kondisi online.
